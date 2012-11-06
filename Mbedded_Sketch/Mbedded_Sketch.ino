@@ -2,12 +2,15 @@
 #include <EEPROM.h>
 
 int modePin = 0;          // number of analog pin for Mode select
-int dumpPin = 1;          // number of analog pin for Dump EEPROM / Reset
-int padPin = 2;           // number of analog pin for sleeping pad
-int lightPin = 13;        // number of digital output pin for lamp
+int dumpPin = 2;          // number of analog pin for Dump EEPROM / Reset
+int padPin = 5;           // number of analog pin for sleeping pad
+int lightPin = 3;        // number of digital output pin for lamp
 int feedbackLight1 = 4;   // number of digital output pin for feedback light 1;   This light on = mode 1.
 int feedbackLight2 = 2;   // number of digital output pin for feedback light 2;   This light on = mode 2.  Both lights = mode 3.
 int brightness = 255;     // initial value of brightness for lamp when dimming
+int sensorValue = 0;
+int sensorMin = 1023;
+int sensorMax = 0;
 
 int padVal = 0;           // value of pad pin           
 int modeVal = 0;          // value of mode pin
@@ -17,7 +20,7 @@ int sleeping = 0;         // boolean to indicate we are in sleep mode
 int dumped = 0;           // boolean to indicate if we have dumped
 int reset = 0;            // boolean to indicate if we have reset the sheet
 int modeOver = 0;         // boolean to indicate that the mode has finished being applied.
-const int TIMETOSLEEP = 600;   // seconds that must pass before sleep events are noted.  This is here to let people fall asleep before calculating.
+const int TIMETOSLEEP = 0;   // seconds that must pass before sleep events are noted.  This is here to let people fall asleep before calculating.
 
 
 //Time variables
@@ -45,9 +48,9 @@ int DEBUG = 0;            // DEBUG boolean.  Used when using serial ouput
 
 
 // button constants
-const int DUMPBUTTONVAL = 200;    // value of reset button sensor (pressed)
-const int MODEBUTTONVAL = 200;     // value of modebutton sensor (pressed)
-const int PADBUTTONVAL = 70;       // value of padbutton sesnor (pressed)
+const int DUMPBUTTONVAL = 400;    // value of reset button sensor (pressed)
+const int MODEBUTTONVAL = 500;     // value of modebutton sensor (pressed)
+int PADBUTTONVAL = 550;       // value of padbutton sesnor (pressed)
 const int DUMPTIME = 3;            // number of seconds to hold down RESETBUTTON to dump data
 const int RESETTIME = 6;           // number of seconds to hold down RESETBUTTON to reset EEPROM/timers
 const int MODE2TIME = 3;           // number of seconds to hold down MODEBUTTON to set mode 2
@@ -89,10 +92,59 @@ int inputPin = A0;
     Serial.begin(9600); 
     pinMode(lightPin, OUTPUT);
     analogWrite(lightPin, MAXBRIGHTNESS);
+    //analogWrite(7, MAXBRIGHTNESS);
+
  
     // Smoothing initialize all the readings to 0: 
     for (int thisReading = 0; thisReading < numReadings; thisReading++)
-       readings[thisReading] = 0;         
+       readings[thisReading] = 0;      
+ 
+ /*   Calibration code taken from....
+      created 29 Oct 2008
+      By David A Mellis
+      modified 30 Aug 2011
+      By Tom Igoe
+ 
+ http://arduino.cc/en/Tutorial/Calibration
+ 
+    This example code is in the public domain.
+    */
+    
+      // calibrate during the first five seconds 
+  while (millis() < 10000) {
+    sensorValue = analogRead(padPin);
+
+    // record the maximum sensor value
+    if (sensorValue > sensorMax) {
+      sensorMax = sensorValue;
+    }
+
+    // record the minimum sensor value
+    if (sensorValue < sensorMin) {
+      sensorMin = sensorValue;
+    }
+  }   
+  int diff = sensorMax - sensorMin;
+  int delta;
+  delta = floor((diff)/2);
+  PADBUTTONVAL = sensorMax - delta;
+  
+  //Serial.println("calibrated");
+
+  //Serial.println(PADBUTTONVAL);
+  //Serial.println(sensorMin);
+  //Serial.println(sensorMax);
+  
+  // turn off light when done calibrating
+  //analogWrite(7, 0);
+
+  
+  
+  while (millis() < 12000) {
+    
+  }
+      //analogWrite(lightPin, MAXBRIGHTNESS);
+
  }
 
 
@@ -103,7 +155,11 @@ void loop() {
   dumpVal = analogRead(dumpPin);
   padVal = analogRead(padPin);
 
-  
+  //Serial.print(modeVal);
+  //Serial.print(".");
+  //Serial.print(dumpVal);
+  //Serial.print(".");
+  //Serial.println(padVal);
  
  // ######################################################################
  //Smothing calculations - used to ID an EVENT
@@ -143,13 +199,13 @@ void loop() {
     }
    
     if(elapsedMinutes != lastMinute){
-       Serial.print(padVal);
-       Serial.print("."); 
-       Serial.print(elapsedTime);
-       Serial.print(".");
-       Serial.print(elapsedMinutes);
-       Serial.print(".");
-       Serial.println(lastMinute);
+       //Serial.print(padVal);
+       //Serial.print("."); 
+       //Serial.print(elapsedTime);
+       //Serial.print(".");
+       //Serial.print(elapsedMinutes);
+       //Serial.print(".");
+       //Serial.println(lastMinute);
        caught = 1;
        dump = 0;
        
@@ -157,7 +213,7 @@ void loop() {
        lastMinute = elapsedMinutes;
 
        // and update EEPROM with the timestamp of this event
-       //updateEEPROM(elapsedMinutes);
+       updateEEPROM(elapsedMinutes);
     }   
  } //end of ID'ing an event
  
@@ -166,6 +222,8 @@ void loop() {
    // Set sleeping if we have pressure on the big pad
    if(padVal < PADBUTTONVAL && !sleeping)
    {
+      //Serial.println(padVal);
+      if(DEBUG) Serial.println("Sleeping");
       sleeping = 1; 
       startTime = millis();
    }
@@ -180,7 +238,7 @@ void loop() {
    // Now handle seperate actions when sleeping based on mode
    
    // Mode 1 shuts the light off as someone lays down
-   if (sleeping && (sheetMode == 1) && !modeOver)
+   if (sleeping && (sheetMode == 1) && !modeOver && (elapsedTime > MODE2TIMER))
    {
       if(DEBUG) Serial.println("Mode 1 in action"); 
       modeOver = 1;
@@ -189,12 +247,15 @@ void loop() {
    }
    
    // Mode 2 Shuts the light off after a period of time
-   if (sleeping && (sheetMode == 2) && !modeOver && (elapsedTime > MODE2TIMER))
-   {
-      if(DEBUG) Serial.println("Mode 2 in action");
-      modeOver = 1;
-      analogWrite(lightPin, 0);
-   }
+   //if (sleeping && (sheetMode == 2) && !modeOver && (elapsedTime > MODE2TIMER))
+   //{
+
+
+
+     // if(DEBUG) Serial.println("Mode 2 in action");
+     // modeOver = 1;
+     // analogWrite(lightPin, 0);
+  // }
    
    // Mode 3 dims light over time
    if (sleeping && (sheetMode == 3) && !modeOver)
@@ -205,7 +266,7 @@ void loop() {
          modified 30 Aug 2011
          by Tom Igoe and Scott Fitzgerald
       */
-      
+      delay(10);
       brightness--;
       analogWrite(lightPin, brightness);
       
@@ -242,6 +303,7 @@ void loop() {
    // handle being held for second pass
    if ((dumpVal < DUMPBUTTONVAL) && (dumpHoldTime > 6) && !reset)
    {
+       if(DEBUG) Serial.print("Resetting...");
        resetSheet();
        reset = 1;
    }
@@ -259,16 +321,29 @@ void loop() {
    modeHoldTime = (millis() - modeStartTime) / 1000L;
    
    // Test how long the button was held and adjust mode accordingly
-   if ((modeVal < MODEBUTTONVAL) && (modeHoldTime > 6))
+   if ((modeVal < MODEBUTTONVAL) && (modeHoldTime > 5))
    {
+           analogWrite(lightPin, 0);
+      
+      analogWrite(lightPin, 0);
+      delay(100);
+      analogWrite(lightPin, MAXBRIGHTNESS);
+
       sheetMode = 3;
       if(DEBUG) Serial.println(sheetMode);  
    }
-   else if((modeVal < MODEBUTTONVAL) && (modeHoldTime > 3))
-   {
-      sheetMode = 2;
-      if(DEBUG) Serial.println(sheetMode); 
-   }
+   //else if((modeVal < MODEBUTTONVAL) && (modeHoldTime > 3))
+   //{
+   //   sheetMode = 2;
+   //   if(DEBUG) Serial.println(sheetMode); 
+   //   analogWrite(lightPin, 0);
+   //   delay(100);
+   //   analogWrite(lightPin, MAXBRIGHTNESS);
+   //   delay(100);
+   //   analogWrite(lightPin, 0);
+   //   delay(100);
+   //   analogWrite(lightPin, MAXBRIGHTNESS);
+   //}
    
 }
 

@@ -3,8 +3,8 @@ import time
 import _mysql
 from Tkinter import *
 
-#s = serial.Serial('/dev/tty.usbserial-A501DGRP',9600)
-s = serial.Serial('/dev/tty.usbmodemfd141',9600)
+s = serial.Serial('/dev/tty.usbserial-A501DGRP',9600)
+#s = serial.Serial('/dev/tty.usbmodemfd141',9600)
 db = _mysql.connect(host="localhost",user="root",passwd="",db="Mbedded",unix_socket="/Applications/XAMPP/xamppfiles/var/mysql/mysql.sock")
 
 values = []
