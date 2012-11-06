@@ -1,0 +1,10 @@
+create table session (
+   timeStamp DATETIME,
+   sessionID int NOT NULL AUTO_INCREMENT,
+   PRIMARY KEY (sessionID)
+) ENGINE InnoDB;
+
+create table sessionData (
+   moment int,
+   sessionID int
+) ENGINE InnoDB;
