@@ -129,14 +129,13 @@ int inputPin = A0;
   delta = floor((diff)/2);
   PADBUTTONVAL = sensorMax - delta;
   
-  //Serial.println("calibrated");
+  if(DEBUG){
+    Serial.println("calibrated");
 
-  //Serial.println(PADBUTTONVAL);
-  //Serial.println(sensorMin);
-  //Serial.println(sensorMax);
-  
-  // turn off light when done calibrating
-  //analogWrite(7, 0);
+    Serial.println(PADBUTTONVAL);
+    Serial.println(sensorMin);
+    Serial.println(sensorMax);
+  }
 
   
   
@@ -155,11 +154,6 @@ void loop() {
   dumpVal = analogRead(dumpPin);
   padVal = analogRead(padPin);
 
-  //Serial.print(modeVal);
-  //Serial.print(".");
-  //Serial.print(dumpVal);
-  //Serial.print(".");
-  //Serial.println(padVal);
  
  // ######################################################################
  //Smothing calculations - used to ID an EVENT
@@ -199,13 +193,15 @@ void loop() {
     }
    
     if(elapsedMinutes != lastMinute){
-       //Serial.print(padVal);
-       //Serial.print("."); 
-       //Serial.print(elapsedTime);
-       //Serial.print(".");
-       //Serial.print(elapsedMinutes);
-       //Serial.print(".");
-       //Serial.println(lastMinute);
+       if(DEBUG){
+         Serial.print(padVal);
+         Serial.print("."); 
+         Serial.print(elapsedTime);
+         Serial.print(".");
+         Serial.print(elapsedMinutes);
+         Serial.print(".");
+         Serial.println(lastMinute);
+       }
        caught = 1;
        dump = 0;
        
