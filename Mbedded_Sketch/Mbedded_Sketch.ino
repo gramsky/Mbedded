@@ -55,7 +55,7 @@ const int DUMPTIME = 3;            // number of seconds to hold down RESETBUTTON
 const int RESETTIME = 6;           // number of seconds to hold down RESETBUTTON to reset EEPROM/timers
 const int MODE2TIME = 3;           // number of seconds to hold down MODEBUTTON to set mode 2
 const int MODE3TIME = 6;           // number of seconds to hold down MODEBUTTON to set mode 3
-const int MODE2TIMER = 10;         // number of seconds until light is shut off
+const int MODE2TIMER = 5;         // number of seconds until light is shut off
 const int MAXBRIGHTNESS = 255;     // highest value for analog LED light
 //const int MODE3TIME = 9;           // number of seconds to hold down MODEBUTTON to set mode 3
 
